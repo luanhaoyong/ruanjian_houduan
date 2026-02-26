@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "123456",
+      "role": "admin"
+    },
+    {
+      "username": "user",
+      "password": "123456",
+      "role": "user"
+    },
+    {
+      "username": "admin668",
+      "password": "123456",
+      "role": "user"
+    }
+  ],
+  "softwares": [
+    {
+      "id": 1772022693892,
+      "name": "集客采集",
+      "version": "1.1.12",
+      "author": "me",
+      "desc": "测试工具",
+      "filename": "",
+      "filepath": "",
+      "createTime": "2026/2/25 20:31:33",
+      "enabled": true
+    }
+  ]
+}

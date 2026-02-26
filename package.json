@@ -1,0 +1,16 @@
+{
+  "name": "software-admin",
+  "version": "1.0.0",
+  "description": "Software Admin System deployed on Cloudflare",
+  "main": "worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240129.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.25.0"
+  }
+}

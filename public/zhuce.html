@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>软件管理系统 - 注册</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 动态弹窗 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">提示</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalContent">
+        这是一个动态弹窗示例
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn-primary" onclick="closeModal()" id="modalConfirmBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2>账号注册</h2>
+      <div class="form-group">
+        <label for="username">账号</label>
+        <input type="text" id="username" placeholder="请设置账号">
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" placeholder="请设置密码">
+      </div>
+      <div class="form-group">
+        <label for="confirmPwd">确认密码</label>
+        <input type="password" id="confirmPwd" placeholder="请再次输入密码">
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="register()">完成注册</button>
+        <button class="btn-secondary" onclick="location.href='index.html'">返回登录</button>
+      </div>
+      <div class="auth-link">
+        已有账号？<a href="index.html">立即登录</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 弹窗控制函数
+    let modalCallback = null;
+    
+    function openModal(title, content, confirmText = "确定", cancelText = "取消", callback = null) {
+      const modalOverlay = document.getElementById('modalOverlay');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalContent = document.getElementById('modalContent');
+      const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+      
+      modalTitle.textContent = title;
+      modalContent.textContent = content;
+      modalConfirmBtn.textContent = confirmText;
+      document.querySelector('.modal-footer .btn-secondary').textContent = cancelText;
+      
+      modalCallback = callback;
+      modalConfirmBtn.onclick = function() {
+        if (modalCallback) modalCallback();
+        closeModal();
+      };
+      
+      modalOverlay.classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+      modalCallback = null;
+    }
+
+    // 注册函数
+    async function register() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const confirmPwd = document.getElementById('confirmPwd').value.trim();
+      
+      // 表单验证
+      if (!username || !password) {
+        openModal('提示', '账号和密码不能为空！', '确定', '取消');
+        return;
+      }
+      
+      if (password.length < 6) {
+        openModal('提示', '密码长度不能少于6位！', '确定', '取消');
+        return;
+      }
+      
+      if (password !== confirmPwd) {
+        openModal('提示', '两次输入的密码不一致！', '确定', '取消');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        
+        if (data.code === 0) {
+          openModal('注册成功', '账号注册成功，即将跳转到登录页！', '确定', '取消', () => {
+            location.href = 'index.html';
+          });
+        } else {
+          openModal('注册失败', data.msg, '确定', '取消');
+        }
+      } catch (err) {
+        openModal('错误', '注册失败，请检查服务是否启动！', '确定', '取消');
+        console.error(err);
+      }
+    }
+
+    // 回车注册
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') register();
+    });
+  </script>
+</body>
+</html>

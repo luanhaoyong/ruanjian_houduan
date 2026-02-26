@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 - 软件管理系统</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 动态弹窗 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">提示</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalContent">
+        这是一个动态弹窗示例
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn-primary" onclick="closeModal()" id="modalConfirmBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- 顶部用户信息+退出按钮 -->
+    <div class="header">
+      <h1>个人中心</h1>
+      <div class="user-info">
+        <span id="username">加载中...</span>
+        <button class="btn-danger logout-btn" onclick="logout()">退出登录</button>
+      </div>
+    </div>
+
+    <!-- 普通用户专属内容 -->
+    <div class="user-dashboard">
+      <div class="card">
+        <h3>欢迎使用软件管理系统</h3>
+        <p>你当前的账号类型：<span class="role-tag">普通用户</span></p>
+        <p>你的权限：可查看软件运行权限状态，无管理操作权限</p>
+      </div>
+
+      <div class="card">
+        <h3>软件权限查询</h3>
+        <p style="color: var(--gray-600); margin-bottom: 15px;">支持输入软件ID（精确）或软件名称（模糊）查询，按回车键快速查询</p>
+        <div class="form-group">
+          <input id="keyword" placeholder="请输入软件ID或名称查询权限">
+        </div>
+        <button class="btn-primary" id="queryBtn">查询权限</button>
+        <div id="permissionResult" class="result-box"></div>
+      </div>
+
+      <div class="card">
+        <h3>使用说明</h3>
+        <ul>
+          <li>如需添加/修改/删除软件，请联系管理员</li>
+          <li>支持按软件ID（精确）或名称（模糊）查询</li>
+          <li>查询结果仅展示软件是否可运行，无修改权限</li>
+          <li>输入完成后按回车键可快速触发查询</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let modalCallback = null;
+
+    // 弹窗控制函数
+    function openModal(title, content, confirmText = "确定", cancelText = "取消", callback = null) {
+      const modalOverlay = document.getElementById('modalOverlay');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalContent = document.getElementById('modalContent');
+      const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+      
+      modalTitle.textContent = title;
+      modalContent.textContent = content;
+      modalConfirmBtn.textContent = confirmText;
+      document.querySelector('.modal-footer .btn-secondary').textContent = cancelText;
+      
+      modalCallback = callback;
+      modalConfirmBtn.onclick = function() {
+        if (modalCallback) modalCallback();
+        closeModal();
+      };
+      
+      modalOverlay.classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+      modalCallback = null;
+    }
+
+    // 初始化：校验登录态
+    async function init() {
+      try {
+        const res = await fetch('/api/user/info');
+        const data = await res.json();
+        
+        // 未登录
+        if (data.code === -2) {
+          openModal('提示', '请先登录！', '确定', '取消', () => {
+            location.href = 'index.html';
+          });
+          return;
+        }
+
+        // 管理员跳转到管理员后台
+        if (data.data.role === 'admin') {
+          openModal('提示', '你是管理员，即将跳转到管理后台', '确定', '取消', () => {
+            location.href = 'admin.html';
+          });
+          return;
+        }
+
+        // 普通用户正常加载
+        document.getElementById('username').textContent = `当前登录：${data.data.username}`;
+        
+        // 绑定回车查询事件
+        const keywordInput = document.getElementById('keyword');
+        const queryBtn = document.getElementById('queryBtn');
+        
+        keywordInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            checkSoftwarePermission();
+          }
+        });
+
+        // 绑定按钮点击事件
+        queryBtn.addEventListener('click', checkSoftwarePermission);
+      } catch (err) {
+        openModal('错误', '登录态校验失败，请重新登录！', '确定', '取消', () => {
+          location.href = 'index.html';
+        });
+      }
+    }
+
+    // 优化后的查询函数：支持ID/名称 + 回车触发
+    async function checkSoftwarePermission() {
+      const keyword = document.getElementById('keyword').value.trim();
+      const resultEl = document.getElementById('permissionResult');
+      
+      if (!keyword) {
+        openModal('提示', '请输入软件ID或名称！', '确定', '取消');
+        return;
+      }
+
+      try {
+        resultEl.innerHTML = '<p class="loading">查询中...</p>';
+        const res = await fetch(`/api/software/query?keyword=${encodeURIComponent(keyword)}`);
+        const data = await res.json();
+        
+        if (data.code === 0) {
+          if (data.data.list.length === 0) {
+            resultEl.innerHTML = `<p class="error">❌ ${data.data.msg}</p>`;
+            openModal('查询结果', data.data.msg, '确定', '取消');
+            return;
+          }
+
+          // 渲染多个结果（添加完整权限接口地址）
+          let html = `<p class="success">✅ ${data.data.msg}</p>`;
+          // 获取完整域名+端口
+          const protocol = window.location.protocol;
+          const host = window.location.host;
+          
+          data.data.list.forEach(item => {
+            // 完整权限接口地址
+            const permissionUrl = `${protocol}//${host}/api/software/${item.id}/permission`;
+            html += `
+              <div class="software-item">
+                <h4>${item.name} (v${item.version})</h4>
+                <p>软件ID：${item.id}</p>
+                <p>运行状态：${item.canRun ? '🟢 可运行' : '🔴 已禁用'}</p>
+                <p>原因：${item.reason}</p>
+                <p>权限接口：<code>${permissionUrl}</code></p>
+              </div>
+            `;
+          });
+          resultEl.innerHTML = html;
+          openModal('查询成功', data.data.msg, '确定', '取消');
+        } else {
+          resultEl.innerHTML = `<p class="error">❌ ${data.msg}</p>`;
+          openModal('查询失败', data.msg, '确定', '取消');
+        }
+      } catch (err) {
+        resultEl.innerHTML = '<p class="error">❌ 查询失败，请检查网络或联系管理员</p>';
+        openModal('查询错误', '查询失败，请检查网络或联系管理员', '确定', '取消');
+        console.error(err);
+      }
+    }
+
+    // 退出登录
+    async function logout() {
+      openModal('确认退出', '确定要退出登录吗？', '确认退出', '取消', async () => {
+        try {
+          const res = await fetch('/api/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await res.json();
+          if (data.code === 0) {
+            openModal('退出成功', '已成功退出登录！', '确定', '取消', () => {
+              location.href = 'index.html';
+            });
+          } else {
+            openModal('退出失败', '退出失败：' + data.msg, '确定', '取消');
+          }
+        } catch (err) {
+          openModal('退出失败', '退出失败，请刷新页面重试！', '确定', '取消');
+          console.error(err);
+        }
+      });
+    }
+
+    // 初始化
+    init();
+  </script>
+</body>
+</html>

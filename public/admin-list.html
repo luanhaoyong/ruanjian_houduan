@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>软件列表 - 管理员后台</title>
+  <link rel="stylesheet" href="admin-list.css">
+</head>
+<body>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">提示</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalContent"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" id="modalConfirmBtn">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">
+      <h2>软件管理后台</h2>
+    </div>
+    <a href="admin-list.html" class="nav-item active">📋 软件列表</a>
+    <a href="admin-add.html" class="nav-item">➕ 添加软件</a>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h1>软件列表管理</h1>
+      <div class="user-info">
+        <span id="username">加载中...</span>
+        <button class="btn-danger" onclick="logout()">退出</button>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <input id="keyword" placeholder="搜索软件" oninput="loadList()">
+      <button class="btn-primary" onclick="loadList()">搜索</button>
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名称</th>
+            <th>版本</th>
+            <th>开发者</th>
+            <th>时间</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="list"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let page = 1;
+  const limit = 10;
+  let modalCallback = null;
+
+  function openModal(title, content, confirmText = "确定", cancelText = "取消", callback = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalContent').innerHTML = content.replace(/\n/g, '<br>');
+    document.getElementById('modalConfirmBtn').textContent = confirmText;
+    document.querySelector('.modal-footer .btn-secondary').textContent = cancelText;
+    modalCallback = callback;
+    document.getElementById('modalConfirmBtn').onclick = () => {
+      if (modalCallback) modalCallback();
+      closeModal();
+    };
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+    modalCallback = null;
+  }
+
+  async function init() {
+    try {
+      const res = await fetch('/api/user/info');
+      const data = await res.json();
+      if (data.code === -2) {
+        openModal('请先登录', '', '确定', '取消', () => location.href = 'index.html');
+        return;
+      }
+      if (data.data.role !== 'admin') {
+        openModal('无权限', '仅管理员可访问', '确定', '取消', () => location.href = 'user-index.html');
+        return;
+      }
+      document.getElementById('username').textContent = `管理员：${data.data.username}`;
+      loadList();
+    } catch (e) {
+      openModal('错误', '加载失败', '确定');
+    }
+  }
+
+  async function loadList() {
+    const keyword = document.getElementById('keyword').value.trim();
+    const r = await fetch(`/api/software?page=${page}&limit=${limit}&keyword=${keyword}`);
+    const d = await r.json();
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    if (!d.data || d.data.length === 0) {
+      list.innerHTML = '<tr><td colspan="7" align="center">暂无数据</td></tr>';
+      return;
+    }
+    d.data.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.id}</td>
+        <td>${item.name}</td>
+        <td>${item.version}</td>
+        <td>${item.author || '-'}</td>
+        <td>${item.createTime}</td>
+        <td>
+          <label class="switch">
+            <input type="checkbox" ${item.enabled ? 'checked' : ''} onchange="toggleSoftware(${item.id}, this.checked)">
+            <span class="slider"></span>
+          </label>
+        </td>
+        <td>
+          <button class="btn-danger" onclick="confirmDelete(${item.id})">删除</button>
+          <button class="btn-success" onclick="copyPermissionUrl(${item.id}, this)">复制权限接口</button>
+        </td>
+      `;
+      list.appendChild(tr);
+    });
+  }
+
+  function confirmDelete(id) {
+    openModal('确认删除', '确定删除？', '删除', '取消', () => delSoftware(id));
+  }
+
+  async function delSoftware(id) {
+    const r = await fetch(`/api/software/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.code === 0) {
+      openModal('成功', '删除成功', '确定', '取消', loadList);
+    } else {
+      openModal('失败', d.msg);
+    }
+  }
+
+  async function toggleSoftware(id, enabled) {
+    const r = await fetch(`/api/software/${id}/toggle`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled })
+    });
+    const d = await r.json();
+    if (d.code === 0) loadList();
+  }
+
+  // 复制权限接口地址（兼容所有浏览器，无弹窗，按钮文字反馈）
+    function copyPermissionUrl(id, btnEl) {
+  const protocol = window.location.protocol;
+  const host = window.location.host;
+  const url = `${protocol}//${host}/api/software/${id}/permission`;
+
+  // 获取点击的按钮元素（用于显示反馈）
+  const btn = btnEl || event.target;
+  
+  // 优先使用 Clipboard API，失败则降级到 textarea 方式
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    // 移动端需要在用户交互的同步上下文中执行
+    navigator.clipboard.writeText(url).then(() => {
+      // 按钮文字反馈，无弹窗
+      showCopySuccess(btn);
+    }).catch((err) => {
+      console.error('Clipboard API 失败:', err);
+      fallbackCopy(url, btn);
+    });
+  } else {
+    fallbackCopy(url, btn);
+  }
+}
+
+// 降级方案：用 textarea 实现复制（无弹窗）
+function fallbackCopy(text, btn) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  // 移动端需要设置为不可见但可编辑
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  // 移动端需要设置选中范围
+  textarea.setSelectionRange(0, textarea.value.length);
+  
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      showCopySuccess(btn);
+    } else {
+      throw new Error('复制失败');
+    }
+  } catch (err) {
+    console.error('Fallback copy failed:', err);
+    // 复制失败时仅用原生 alert 提示（最简提示）
+    alert('复制失败，请手动复制：' + text);
+  }
+  document.body.removeChild(textarea);
+}
+
+// 显示复制成功的按钮反馈
+function showCopySuccess(btn) {
+  const originalText = btn.textContent;
+  btn.textContent = '已复制';
+  btn.classList.add('copied');
+  
+  // 2秒后恢复原状态
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.classList.remove('copied');
+  }, 2000);
+}
+
+  async function logout() {
+    openModal('退出', '确定退出？', '退出', '取消', async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      location.href = 'index.html';
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+  * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Microsoft Yahei", sans-serif;
+    }
+
+    :root {
+      --primary: #165DFF;
+      --danger: #F53F3F;
+      --secondary: #86909C;
+      --gray-100: #F2F3F5;
+      --gray-200: #E5E6EB;
+      --gray-800: #1E293B;
+      --radius-xl: 8px;
+      --shadow-xl: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    body {
+      overflow-x: hidden;
+      background-color: var(--gray-100);
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column; /* 移动端默认垂直布局 */
+    }
+
+    .sidebar {
+      width: 100%;
+      background: var(--gray-800);
+      color: white;
+      padding: 15px 0;
+      flex-shrink: 0;
+    }
+
+    .sidebar .logo {
+      text-align: center;
+      padding: 0 15px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 10px;
+    }
+
+    .sidebar .logo h2 {
+      font-size: 18px; /* 移动端缩小标题 */
+    }
+
+    .sidebar .nav-item {
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 14px; /* 移动端缩小导航文字 */
+    }
+
+    .sidebar .nav-item.active {
+      background: rgba(22,93,255,0.2);
+      border-left: 4px solid var(--primary);
+      color: white;
+    }
+
+    .main-content {
+      flex: 1;
+      background: var(--gray-100);
+      padding: 10px; /* 移动端减小内边距 */
+      width: 100%;
+    }
+
+    .header {
+      background: white;
+      padding: 10px 12px;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap; /* 移动端自动换行 */
+      gap: 8px; /* 换行后间距 */
+    }
+
+    .header h1 {
+      font-size: 16px; /* 移动端缩小标题 */
+      white-space: nowrap; /* 防止标题换行 */
+    }
+
+    .header .user-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      justify-content: flex-end;
+      margin-top: 5px; /* 换行后增加间距 */
+    }
+
+    .header #username {
+      font-size: 14px;
+      color: var(--gray-800);
+    }
+
+    .form-box {
+      background: white;
+      padding: 15px; /* 移动端减小内边距 */
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      max-width: 700px;
+      width: 100%; /* 移动端占满宽度 */
+      margin: 0 auto;
+    }
+
+    .form-group {
+      margin-bottom: 12px; /* 移动端减小间距 */
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      font-size: 14px; /* 移动端缩小标签文字 */
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 10px; /* 增大输入框内边距，适配触摸 */
+      border: 1px solid var(--gray-200);
+      border-radius: 4px;
+      font-size: 14px;
+      /* 防止输入框被挤压 */
+      min-height: 44px;
+    }
+
+    .form-group textarea {
+      min-height: 80px; /* 文本域最小高度 */
+      resize: vertical; /* 仅允许垂直拉伸 */
+    }
+
+    /* 文件上传框适配 */
+    .form-group input[type="file"] {
+      padding: 8px;
+      min-height: auto;
+    }
+
+    /* 按钮统一样式 */
+    button {
+      padding: 10px 18px; /* 增大按钮点击区域 */
+      border: none;
+      border-radius: 4px;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      font-size: 15px;
+      min-width: 100px; /* 保证按钮最小宽度 */
+      white-space: nowrap; /* 防止文字换行 */
+    }
+
+    /* 退出按钮样式 */
+    .logout-btn {
+      background: var(--danger) !important;
+      margin-left: 8px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+    }
+
+    /* 提交按钮特殊样式 */
+    .submit-btn {
+      width: 100%; /* 移动端提交按钮占满宽度 */
+      margin-top: 5px;
+      padding: 12px 0;
+      font-size: 16px;
+    }
+
+    /* 弹窗样式适配 */
+    .modal-overlay {
+      position: fixed;
+      top:0;left:0;right:0;bottom:0;
+      background: rgba(0,0,0,0.5);
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      padding: 15px; /* 防止弹窗超出屏幕 */
+    }
+    .modal-overlay.active {
+      opacity:1;
+      visibility: visible;
+    }
+    .modal {
+      background: white;
+      width: 100%; /* 移动端弹窗占满宽度 */
+      max-width: 480px;
+      padding: 18px; /* 减小弹窗内边距 */
+      border-radius: 8px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .modal-header h3 {
+      font-size: 16px;
+    }
+    .modal-header button {
+      padding: 0;
+      min-width: auto;
+      background: transparent;
+      font-size: 18px;
+      color: #666;
+    }
+    .modal-body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    .modal-footer button {
+      padding: 8px 12px;
+      font-size: 14px;
+      min-width: 80px;
+    }
+    .btn-secondary {
+      background: var(--gray-200);
+      color: #333;
+    }
+
+    /* 大屏适配（平板/PC） */
+    @media (min-width: 768px) {
+      .layout {
+        flex-direction: row; /* 大屏恢复横向布局 */
+      }
+      .sidebar {
+        width: 220px;
+        padding: 20px 0;
+      }
+      .sidebar .logo {
+        padding: 0 20px 20px;
+        margin-bottom: 20px;
+      }
+      .sidebar .logo h2 {
+        font-size: 20px;
+      }
+      .sidebar .nav-item {
+        padding: 12px 20px;
+        font-size: 15px;
+      }
+      .main-content {
+        padding: 15px;
+      }
+      .header {
+        padding: 12px 15px;
+        margin-bottom: 15px;
+        flex-wrap: nowrap; /* 大屏不换行 */
+      }
+      .header h1 {
+        font-size: 18px;
+      }
+      .header .user-wrap {
+        width: auto;
+        margin-top: 0;
+      }
+      .form-box {
+        padding: 20px;
+      }
+      .submit-btn {
+        width: auto; /* 大屏提交按钮恢复默认宽度 */
+        padding: 8px 16px;
+        font-size: 15px;
+      }
+    }

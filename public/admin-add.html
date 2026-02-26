@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>添加软件 - 管理员后台</title>
+  <link rel="stylesheet" href="admin-add.css">
+</head>
+<body>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">提示</h3>
+      <button onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalContent"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" id="modalConfirmBtn">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">
+      <h2>软件管理后台</h2>
+    </div>
+    <a href="admin-list.html" class="nav-item">📋 软件列表</a>
+    <a href="admin-add.html" class="nav-item active">➕ 添加软件</a>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h1>添加新软件</h1>
+      <div class="user-wrap">
+        <span id="username">加载中...</span>
+        <button class="logout-btn" onclick="logout()">退出</button>
+      </div>
+    </div>
+
+    <div class="form-box">
+      <div class="form-group">
+        <label>软件名称 *</label>
+        <input id="name" placeholder="必填">
+      </div>
+      <div class="form-group">
+        <label>版本号 *</label>
+        <input id="version" placeholder="必填">
+      </div>
+      <div class="form-group">
+        <label>开发者</label>
+        <input id="author" placeholder="选填">
+      </div>
+      <div class="form-group">
+        <label>描述</label>
+        <textarea id="desc" rows="3" placeholder="选填"></textarea>
+      </div>
+      <div class="form-group">
+        <label>上传安装包</label>
+        <input type="file" id="file">
+      </div>
+      <button class="submit-btn" onclick="addSoftware()">提交保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let modalCallback = null;
+
+  function openModal(title, content, confirmText = "确定", cancelText = "取消", callback = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalContent').innerHTML = content.replace(/\n/g, '<br>');
+    document.getElementById('modalConfirmBtn').textContent = confirmText;
+    modalCallback = callback;
+    document.getElementById('modalConfirmBtn').onclick = () => {
+      if (modalCallback) modalCallback();
+      closeModal();
+    };
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+    modalCallback = null;
+  }
+
+  async function init() {
+    try {
+      const r = await fetch('/api/user/info');
+      const d = await r.json();
+      if (d.code === -2) {
+        openModal('请登录', '', '确定', '取消', () => location.href = 'index.html');
+        return;
+      }
+      if (d.data.role !== 'admin') {
+        openModal('无权限', '仅管理员可访问', '确定', '取消', () => location.href = 'user-index.html');
+        return;
+      }
+      document.getElementById('username').textContent = `管理员：${d.data.username}`;
+    } catch (e) {
+      openModal('错误', '加载用户信息失败，请刷新页面', '确定');
+    }
+  }
+
+  async function addSoftware() {
+    const name = document.getElementById('name').value.trim();
+    const version = document.getElementById('version').value.trim();
+    if (!name || !version) {
+      openModal('提示', '名称和版本必填');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('version', version);
+    fd.append('author', document.getElementById('author').value);
+    fd.append('desc', document.getElementById('desc').value);
+    const file = document.getElementById('file').files[0];
+    if (file) fd.append('file', file);
+
+    try {
+      const r = await fetch('/api/software', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (d.code === 0) {
+        openModal('成功', '添加成功', '确定', '取消', () => {
+          document.getElementById('name').value = '';
+          document.getElementById('version').value = '';
+          document.getElementById('author').value = '';
+          document.getElementById('desc').value = '';
+          document.getElementById('file').value = '';
+        });
+      } else {
+        openModal('失败', d.msg || '添加失败，请重试');
+      }
+    } catch (e) {
+      openModal('错误', '网络异常，请检查服务后重试', '确定');
+    }
+  }
+
+  async function logout() {
+    openModal('退出', '确定退出？', '退出', '取消', async () => {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        location.href = 'index.html';
+      } catch (e) {
+        openModal('错误', '退出失败，请刷新页面重试', '确定');
+      }
+    });
+  }
+
+  // 页面加载完成后初始化
+  window.onload = init;
+</script>
+</body>
+</html>

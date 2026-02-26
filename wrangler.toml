@@ -1,0 +1,11 @@
+name = "software-admin"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "SOFTWARE_ADMIN_DB"
+id = "aea8510f7b11494d9ce16cecf2cc23ee"
+
+[[r2_buckets]]
+binding = "SOFTWARE_ADMIN_UPLOADS"
+bucket_name = "software-admin-uploads"
